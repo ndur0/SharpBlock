@@ -4,19 +4,18 @@ using System.Runtime.InteropServices;
 
 namespace SharpBlock
 {
-    public class WinAPI
-    {
+    public class WinAPI {
         public const UInt32 DBG_CONTINUE = 0x00010002;
         public const UInt32 DBG_EXCEPTION_NOT_HANDLED = 0x80010001;
         public const Int32 CREATE_PROCESS_DEBUG_EVENT = 3;
-        public const Int32 CREATE_THREAD_DEBUG_EVENT = 2; 
+        public const Int32 CREATE_THREAD_DEBUG_EVENT = 2;
         public const Int32 EXCEPTION_DEBUG_EVENT = 1;
         public const Int32 EXIT_PROCESS_DEBUG_EVENT = 5;
         public const Int32 EXIT_THREAD_DEBUG_EVENT = 4;
-        public const Int32 LOAD_DLL_DEBUG_EVENT = 6; 
+        public const Int32 LOAD_DLL_DEBUG_EVENT = 6;
         public const Int32 OUTPUT_DEBUG_STRING_EVENT = 8;
         public const Int32 RIP_EVENT = 9;
-        public const Int32 UNLOAD_DLL_DEBUG_EVENT = 7; 
+        public const Int32 UNLOAD_DLL_DEBUG_EVENT = 7;
 
         public const UInt32 EXCEPTION_ACCESS_VIOLATION = 0xC0000005;
         public const UInt32 EXCEPTION_BREAKPOINT = 0x80000003;
@@ -28,6 +27,13 @@ namespace SharpBlock
         public const UInt32 DEBUG_PROCESS = 0x00000001;
         public const UInt32 CREATE_SUSPENDED = 0x00000004;
         public const UInt32 CREATE_NEW_CONSOLE = 0x00000010;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct OUTPUT_DEBUG_STRING_INFO {
+            public IntPtr lpDebugStringData;
+            public ushort fUnicode;
+            public ushort nDebugStringLength;
+        }
 
         [StructLayout(LayoutKind.Sequential)]
         public struct EXCEPTION_RECORD {
@@ -44,8 +50,7 @@ namespace SharpBlock
             public uint dwFirstChance;
         }
         [StructLayout(LayoutKind.Sequential)]
-        public struct LOAD_DLL_DEBUG_INFO
-        {
+        public struct LOAD_DLL_DEBUG_INFO {
             public IntPtr hFile;
             public IntPtr lpBaseOfDll;
             public uint dwDebugInfoFileOffset;
@@ -54,8 +59,7 @@ namespace SharpBlock
             public ushort fUnicode;
         }
         [StructLayout(LayoutKind.Sequential)]
-        public struct CREATE_PROCESS_DEBUG_INFO
-        {
+        public struct CREATE_PROCESS_DEBUG_INFO {
             public IntPtr hFile;
             public IntPtr hProcess;
             public IntPtr hThread;
@@ -74,8 +78,7 @@ namespace SharpBlock
             public IntPtr lpStartAddress;
         }
         [StructLayout(LayoutKind.Sequential)]
-        public struct DEBUG_EVENT
-        {
+        public struct DEBUG_EVENT {
             public UInt32 dwDebugEventCode;
             public UInt32 dwProcessId;
             public UInt32 dwThreadId;
@@ -84,8 +87,7 @@ namespace SharpBlock
             public byte[] u;  // union of degug infos
         }
         [StructLayout(LayoutKind.Sequential)]
-        public struct STARTUPINFO
-        {
+        public struct STARTUPINFO {
             public UInt32 cb;
             public string lpReserved; //    LPWSTR  lpReserved;
             public string lpDesktop;
@@ -98,7 +100,7 @@ namespace SharpBlock
             public UInt32 dwYCountChars;
             public UInt32 dwFillAttribute;
             public UInt32 dwFlags;
-            public UInt16  wShowWindow;
+            public UInt16 wShowWindow;
             public UInt16 cbReserved2;
             public IntPtr lpReserved2;
             public IntPtr hStdInput;
@@ -106,8 +108,7 @@ namespace SharpBlock
             public IntPtr hStdError;
         }
         [StructLayout(LayoutKind.Sequential)]
-        public struct PROCESS_INFORMATION
-        {
+        public struct PROCESS_INFORMATION {
             public IntPtr hProcess;
             public IntPtr hThread;
             public UInt32 dwProcessId;
@@ -177,7 +178,7 @@ namespace SharpBlock
         [StructLayout(LayoutKind.Sequential)]
         public class CONTEXT {
             public CONTEXT_FLAGS ContextFlags; //set this to an appropriate value
-                                      // Retrieved by CONTEXT_DEBUG_REGISTERS
+                                               // Retrieved by CONTEXT_DEBUG_REGISTERS
             public uint Dr0;
             public uint Dr1;
             public uint Dr2;
@@ -330,7 +331,7 @@ namespace SharpBlock
            string lpCurrentDirectory,
            [In] ref STARTUPINFO lpStartupInfo,
            out PROCESS_INFORMATION lpProcessInformation);
-        
+
         [Flags]
         public enum ThreadAccess : int {
             TERMINATE = (0x0001),
@@ -343,6 +344,12 @@ namespace SharpBlock
             IMPERSONATE = (0x0100),
             DIRECT_IMPERSONATION = (0x0200)
         }
+
+        public enum StdHandle : int {
+            STD_INPUT_HANDLE = -10,
+            STD_OUTPUT_HANDLE = -11,
+            STD_ERROR_HANDLE = -12
+        };
 
         [DllImport("kernel32.dll")]
         public static extern bool GetFileSizeEx(IntPtr hFile, out long lpFileSize);
@@ -357,7 +364,7 @@ namespace SharpBlock
             [MarshalAs(UnmanagedType.LPStr)] string lpName);
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern IntPtr MapViewOfFile(IntPtr hFileMappingObject, FileMapAccess dwDesiredAccess,uint dwFileOffsetHigh,
+        public static extern IntPtr MapViewOfFile(IntPtr hFileMappingObject, FileMapAccess dwDesiredAccess, uint dwFileOffsetHigh,
             uint dwFileOffsetLow, UIntPtr dwNumberOfBytesToMap);
 
         [DllImport("Kernel32.dll", SetLastError = true, CharSet = CharSet.Auto)]
@@ -396,5 +403,20 @@ namespace SharpBlock
         public static extern IntPtr LoadLibrary([MarshalAs(UnmanagedType.LPStr)] string lpFileName);
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern IntPtr OpenThread(ThreadAccess dwDesiredAccess, bool bInheritHandle, uint dwThreadId);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr GetStdHandle(StdHandle nStdHandle);
+        [DllImport("ntdll.dll", SetLastError = true)]
+        public static extern int NtSetInformationProcess(IntPtr hProcess, int processInformationClass, IntPtr processInformation, int processInformationLength);
+        [DllImport("ntdll.dll", SetLastError = true)]
+        public static extern int NtQueryInformationProcess(IntPtr hProcess, int processInformationClass, IntPtr processInformation, int processInformationLength, out ulong returnLength);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct ProcessConsoleHostProcessInfo {
+            public int pidLow;
+            public int pidHigh;
+        };
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool DuplicateHandle(IntPtr hSourceProcessHandle, IntPtr hSourceHandle, IntPtr hTargetProcessHandle, out IntPtr lpTargetHandle, uint dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, uint dwOptions);
     }
 }
